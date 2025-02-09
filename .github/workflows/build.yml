@@ -7,21 +7,19 @@ on:
 
 
 jobs:
-  build:
-    name: Build and analyze
+  sonar:
     runs-on: ubuntu-latest
-    
+    services:
+      sonarqube:
+        image: sonarqube:lts
+        ports:
+          - "9000:9000"
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - uses: SonarSource/sonarqube-scan-action@v4
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      # If you wish to fail your job when the Quality Gate is red, uncomment the
-      # following lines. This would typically be used to fail a deployment.
-      # - uses: SonarSource/sonarqube-quality-gate-action@v1
-      #   timeout-minutes: 5
-      #   env:
-      #     SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Wait for SonarQube to start
+        run: |
+          until curl -s http://127.0.0.1:9000/api/system/status | grep '"status":"UP"'; do
+            echo "Waiting for SonarQube..."
+            sleep 5
+          done
+      - name: Run SonarScanner
+        run: sonar-scanner -Dsonar.host.url=http://127.0.0.1:9000
